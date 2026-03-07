@@ -4,6 +4,8 @@ import { useAuth } from '../contexts/AuthContext'
 import { FiMail, FiLock, FiEye, FiEyeOff, FiAlertCircle, FiX, FiUser, FiPhone, FiMapPin, FiCalendar, FiDroplet } from 'react-icons/fi'
 import { FaGoogle } from 'react-icons/fa'
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
+
 const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
   const [mode, setMode] = useState(initialMode) // 'login' or 'register'
   const [step, setStep] = useState(1) // For register: step 1 or 2
@@ -170,7 +172,7 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
 
       // Fetch role from database
       const uid = userCredential.user.uid
-      const response = await fetch(`http://localhost:8080/api/users/${uid}/role`)
+      const response = await fetch(`${API_BASE}/users/${uid}/role`)
 
       if (response.ok) {
         const data = await response.json()

@@ -16,9 +16,9 @@ const ProtectedRoute = ({ children, allowedRole }) => {
         );
     }
 
-    // Not logged in - redirect to login
+    // Not logged in - redirect to landing page (auth handled via modal)
     if (!currentUser) {
-        return <Navigate to="/login" replace />;
+        return <Navigate to="/" replace />;
     }
 
     // Check if user has the correct role

@@ -13,9 +13,11 @@ import com.bloodconnect.repository.PatientRepository;
 import com.bloodconnect.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
+@Slf4j
 @Service
 public class BloodRequestService {
 
@@ -87,7 +89,7 @@ public class BloodRequestService {
             }
         } catch (Exception e) {
             // Log error but don't fail request creation
-            System.err.println("Failed to send notifications: " + e.getMessage());
+            log.warn("Failed to send notifications for request: {}", e.getMessage());
         }
 
         return savedRequest;

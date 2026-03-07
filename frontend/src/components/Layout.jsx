@@ -7,10 +7,8 @@ import {
   FiLogOut,
   FiMenu,
   FiX,
-  FiBell,
   FiUser,
   FiSettings,
-  FiHelpCircle,
   FiChevronDown,
   FiMap,
   FiClock,
@@ -19,6 +17,81 @@ import {
 import { Transition } from '@headlessui/react'
 import AIAssistant from './AIAssistant'
 import NotificationBell from './NotificationBell'
+
+const ProfileDropdown = ({ userName, userRole, handleLogout }) => {
+  const [isOpen, setIsOpen] = useState(false)
+  const navigate = useNavigate()
+
+  const menuItems = [
+    { label: 'My Profile', icon: <FiUser />, action: () => navigate('/profile') },
+    { label: 'Settings', icon: <FiSettings />, action: () => navigate('/profile') },
+  ]
+
+  return (
+    <div className="relative">
+      <button onClick={() => setIsOpen(!isOpen)} className="flex items-center gap-3">
+        <div className="hidden md:block text-right">
+          <p className="text-sm font-semibold text-gray-800 truncate max-w-[150px]">{userName}</p>
+          <p className="text-xs text-gray-500 capitalize">{userRole}</p>
+        </div>
+        <div className="relative">
+          <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+            <span className="text-gray-600 font-semibold">{userName.charAt(0).toUpperCase()}</span>
+          </div>
+          <FiChevronDown
+            className={`absolute -right-1 bottom-0 w-4 h-4 bg-white rounded-full border-2 border-white text-gray-500 transition-transform ${isOpen ? 'transform rotate-180' : ''
+              }`}
+          />
+        </div>
+      </button>
+
+      <Transition
+        show={isOpen}
+        as={Fragment}
+        enter="transition ease-out duration-200"
+        enterFrom="transform opacity-0 scale-95"
+        enterTo="transform opacity-100 scale-100"
+        leave="transition ease-in duration-75"
+        leaveFrom="transform opacity-100 scale-100"
+        leaveTo="transform opacity-0 scale-95"
+      >
+        <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-200 z-50 overflow-hidden">
+          <div className="p-4 border-b border-gray-200">
+            <p className="font-semibold text-gray-800">{userName}</p>
+            <p className="text-sm text-gray-500 capitalize">{userRole}</p>
+          </div>
+          <div className="py-2">
+            {menuItems.map((item) => (
+              <button
+                key={item.label}
+                onClick={() => {
+                  setIsOpen(false)
+                  item.action()
+                }}
+                className="flex items-center gap-3 w-full px-4 py-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+              >
+                {item.icon}
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </div>
+          <div className="border-t border-gray-200">
+            <button
+              onClick={() => {
+                setIsOpen(false)
+                handleLogout()
+              }}
+              className="flex items-center gap-3 w-full px-4 py-3 text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+            >
+              <FiLogOut />
+              <span>Logout</span>
+            </button>
+          </div>
+        </div>
+      </Transition>
+    </div>
+  )
+}
 
 const Layout = ({ children }) => {
   const { currentUser, logout } = useAuth()
@@ -113,14 +186,6 @@ const Layout = ({ children }) => {
           </nav>
 
           <div className="p-4 border-t border-gray-200 space-y-2">
-            <Link
-              to="/settings"
-              className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all duration-200 group"
-              onClick={() => setSidebarOpen(false)}
-            >
-              <FiSettings className="text-lg" />
-              <span>Settings</span>
-            </Link>
             <button
               onClick={handleLogout}
               className="flex items-center gap-3 w-full px-4 py-2.5 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 transition-all duration-200 group"
@@ -170,130 +235,6 @@ const Layout = ({ children }) => {
         {/* AI Assistant Floating Widget */}
         <AIAssistant />
       </div>
-    </div>
-  )
-}
-
-const NotificationDropdown = ({ notifications, unreadCount }) => {
-  const [isOpen, setIsOpen] = useState(false)
-
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-full bg-gray-100 hover:bg-gray-200 border border-gray-200"
-      >
-        <FiBell className="text-xl text-gray-600" />
-        {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-xs text-white flex items-center justify-center">
-            {unreadCount}
-          </span>
-        )}
-      </button>
-
-      <Transition
-        show={isOpen}
-        as={Fragment}
-        enter="transition ease-out duration-200"
-        enterFrom="transform opacity-0 scale-95"
-        enterTo="transform opacity-100 scale-100"
-        leave="transition ease-in duration-75"
-        leaveFrom="transform opacity-100 scale-100"
-        leaveTo="transform opacity-0 scale-95"
-      >
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-200 z-50">
-          <div className="p-4 border-b border-gray-200">
-            <h3 className="font-semibold text-gray-800">Notifications</h3>
-          </div>
-          <div className="max-h-96 overflow-y-auto">
-            {notifications.length === 0 ? (
-              <p className="text-center text-gray-500 py-10">No new notifications.</p>
-            ) : (
-              notifications.map((notification) => (
-                <div key={notification.id} className="p-4 border-b border-gray-100 hover:bg-gray-50">
-                  { }
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </Transition>
-    </div>
-  )
-}
-
-const ProfileDropdown = ({ userName, userRole, handleLogout }) => {
-  const [isOpen, setIsOpen] = useState(false)
-  const navigate = useNavigate()
-
-  const menuItems = [
-    { label: 'My Profile', icon: <FiUser />, action: () => navigate('/profile') },
-    { label: 'Settings', icon: <FiSettings />, action: () => navigate('/settings') },
-    { label: 'Help & Support', icon: <FiHelpCircle />, action: () => navigate('/help') },
-  ]
-
-  return (
-    <div className="relative">
-      <button onClick={() => setIsOpen(!isOpen)} className="flex items-center gap-3">
-        <div className="hidden md:block text-right">
-          <p className="text-sm font-semibold text-gray-800 truncate max-w-[150px]">{userName}</p>
-          <p className="text-xs text-gray-500 capitalize">{userRole}</p>
-        </div>
-        <div className="relative">
-          <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-            <span className="text-gray-600 font-semibold">{userName.charAt(0).toUpperCase()}</span>
-          </div>
-          <FiChevronDown
-            className={`absolute -right-1 bottom-0 w-4 h-4 bg-white rounded-full border-2 border-white text-gray-500 transition-transform ${isOpen ? 'transform rotate-180' : ''
-              }`}
-          />
-        </div>
-      </button>
-
-      <Transition
-        show={isOpen}
-        as={Fragment}
-        enter="transition ease-out duration-200"
-        enterFrom="transform opacity-0 scale-95"
-        enterTo="transform opacity-100 scale-100"
-        leave="transition ease-in duration-75"
-        leaveFrom="transform opacity-100 scale-100"
-        leaveTo="transform opacity-0 scale-95"
-      >
-        <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-200 z-50 overflow-hidden">
-          <div className="p-4 border-b border-gray-200">
-            <p className="font-semibold text-gray-800">{userName}</p>
-            <p className="text-sm text-gray-500 capitalize">{userRole}</p>
-          </div>
-          <div className="py-2">
-            {menuItems.map((item) => (
-              <button
-                key={item.label}
-                onClick={() => {
-                  setIsOpen(false)
-                  item.action()
-                }}
-                className="flex items-center gap-3 w-full px-4 py-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
-              >
-                {item.icon}
-                <span>{item.label}</span>
-              </button>
-            ))}
-          </div>
-          <div className="border-t border-gray-200">
-            <button
-              onClick={() => {
-                setIsOpen(false)
-                handleLogout()
-              }}
-              className="flex items-center gap-3 w-full px-4 py-3 text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
-            >
-              <FiLogOut />
-              <span>Logout</span>
-            </button>
-          </div>
-        </div>
-      </Transition>
     </div>
   )
 }

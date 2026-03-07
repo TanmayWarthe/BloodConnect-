@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api'
-import { FiMapPin, FiNavigation } from 'react-icons/fi'
+import { FiMapPin } from 'react-icons/fi'
 import { apiService } from '../services/api.service'
 
 const containerStyle = {
@@ -15,14 +15,6 @@ const defaultCenter = {
     lng: 77.2090
 }
 
-// Mock data - In real app, this comes from backend
-const mockLocations = [
-    { id: 1, type: 'hospital', name: 'City General Hospital', lat: 28.6129, lng: 77.2295, bloodAvailable: ['A+', 'O+'] },
-    { id: 2, type: 'donor', name: 'Sarthak (A+)', lat: 28.6200, lng: 77.2100, lastDonation: '2023-12-01' },
-    { id: 3, type: 'hospital', name: 'LifeCare Center', lat: 28.6000, lng: 77.2000, bloodAvailable: ['B-', 'AB+'] },
-    { id: 4, type: 'donor', name: 'Priya (O-)', lat: 28.6250, lng: 77.1900, lastDonation: '2024-01-10' },
-]
-
 const BloodMap = () => {
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -30,39 +22,71 @@ const BloodMap = () => {
     })
 
     const [map, setMap] = useState(null)
-    const [locations, setLocations] = useState(mockLocations) // Start with mock, append real
+    const [locations, setLocations] = useState([])
     const [selectedLocation, setSelectedLocation] = useState(null)
+    const [loadError, setLoadError] = useState(null)
 
     useEffect(() => {
-        // Fetch real donors
-        // For MVP, we fetch A+ donors or allow filter. Here we fetch one group as demo.
-        apiService.get('/donors/nearby?bloodGroup=A+')
-            .then(res => {
-                const donors = res.data.map(d => ({
-                    id: `real-${d.id}`,
-                    type: 'donor',
-                    name: `${d.name} (${d.bloodGroup})`,
-                    lat: d.latitude || defaultCenter.lat, // Fallback if no lat
-                    lng: d.longitude || defaultCenter.lng,
-                    lastDonation: d.lastDonationDate || 'Never'
-                })).filter(d => d.lat !== defaultCenter.lat); // Filter invalid
+        const fetchMapData = async () => {
+            try {
+                // Fetch donors and hospitals in parallel
+                const [donorsRes, hospitalsRes] = await Promise.allSettled([
+                    apiService.get('/donors/nearby?bloodGroup=A+&radius=50'),
+                    apiService.get('/hospitals/all')
+                ])
 
-                setLocations(prev => [...prev, ...donors]);
-            })
-            .catch(err => console.error("Failed to fetch donors", err));
+                const donors = donorsRes.status === 'fulfilled'
+                    ? (donorsRes.value.data || [])
+                        .filter(d => d.latitude && d.longitude)
+                        .map(d => ({
+                            id: `donor-${d.id}`,
+                            type: 'donor',
+                            name: `${d.name} (${d.bloodGroup}${d.rhFactor || ''})`,
+                            lat: d.latitude,
+                            lng: d.longitude,
+                            bloodGroup: d.bloodGroup,
+                            lastDonation: d.lastDonationDate || 'Never',
+                            status: d.availabilityStatus
+                        }))
+                    : []
+
+                const hospitals = hospitalsRes.status === 'fulfilled'
+                    ? (hospitalsRes.value.data || [])
+                        .filter(h => h.latitude && h.longitude)
+                        .map(h => ({
+                            id: `hospital-${h.id}`,
+                            type: 'hospital',
+                            name: h.hospitalName,
+                            lat: h.latitude,
+                            lng: h.longitude,
+                            phone: h.phone,
+                            address: h.address
+                        }))
+                    : []
+
+                setLocations([...donors, ...hospitals])
+            } catch (err) {
+                console.error('Failed to load map data:', err)
+                setLoadError('Could not load map data.')
+            }
+        }
+
+        fetchMapData()
     }, [])
 
     const onLoad = useCallback(function callback(map) {
-        const bounds = new window.google.maps.LatLngBounds(defaultCenter)
-        // Extend bounds to include locations
-        locations.forEach(loc => {
-            bounds.extend({ lat: loc.lat, lng: loc.lng })
-        })
-        map.fitBounds(bounds)
+        if (locations.length > 0) {
+            const bounds = new window.google.maps.LatLngBounds()
+            locations.forEach(loc => bounds.extend({ lat: loc.lat, lng: loc.lng }))
+            map.fitBounds(bounds)
+        } else {
+            map.setCenter(defaultCenter)
+            map.setZoom(12)
+        }
         setMap(map)
     }, [locations])
 
-    const onUnmount = useCallback(function callback(map) {
+    const onUnmount = useCallback(function callback() {
         setMap(null)
     }, [])
 
@@ -70,6 +94,14 @@ const BloodMap = () => {
         return (
             <div className="flex items-center justify-center h-[500px] bg-gray-100 rounded-xl animate-pulse">
                 <p className="text-gray-500">Loading Maps...</p>
+            </div>
+        )
+    }
+
+    if (loadError) {
+        return (
+            <div className="flex items-center justify-center h-[500px] bg-gray-50 rounded-xl border border-gray-200">
+                <p className="text-gray-500">{loadError}</p>
             </div>
         )
     }
@@ -130,21 +162,25 @@ const BloodMap = () => {
 
                             {selectedLocation.type === 'hospital' && (
                                 <div>
-                                    <p className="text-xs font-semibold text-gray-700 mb-1">Available Blood:</p>
-                                    <div className="flex gap-1 flex-wrap">
-                                        {selectedLocation.bloodAvailable.map(bg => (
-                                            <span key={bg} className="px-1.5 py-0.5 bg-red-50 text-red-600 text-[10px] font-bold rounded border border-red-100">
-                                                {bg}
-                                            </span>
-                                        ))}
-                                    </div>
+                                    {selectedLocation.address && (
+                                        <p className="text-xs text-gray-600 mb-1">📍 {selectedLocation.address}</p>
+                                    )}
+                                    {selectedLocation.phone && (
+                                        <p className="text-xs text-gray-600">📞 {selectedLocation.phone}</p>
+                                    )}
                                 </div>
                             )}
 
                             {selectedLocation.type === 'donor' && (
                                 <div>
                                     <p className="text-xs text-gray-500">Last Donation: {selectedLocation.lastDonation}</p>
-                                    <button className="mt-2 w-full btn-primary py-1 text-xs">Request</button>
+                                    {selectedLocation.status && (
+                                        <p className="text-xs mt-1">
+                                            Status: <span className={`font-semibold ${selectedLocation.status === 'AVAILABLE' ? 'text-green-600' : 'text-gray-500'}`}>
+                                                {selectedLocation.status}
+                                            </span>
+                                        </p>
+                                    )}
                                 </div>
                             )}
                         </div>

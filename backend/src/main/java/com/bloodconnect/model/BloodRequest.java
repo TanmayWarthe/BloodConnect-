@@ -42,7 +42,7 @@ public class BloodRequest {
     private LocalDateTime createdAt;
 
     public enum Urgency {
-        NORMAL, CRITICAL, EMERGENCY
+        NORMAL, URGENT, CRITICAL, EMERGENCY
     }
 
     public enum RequestStatus {

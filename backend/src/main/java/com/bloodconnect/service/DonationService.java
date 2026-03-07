@@ -8,11 +8,14 @@ import com.bloodconnect.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 @Service
 public class DonationService {
 
@@ -83,7 +86,7 @@ public class DonationService {
                                 }
                         } catch (Exception e) {
                                 // Log error but continue without appointment
-                                System.err.println("Could not create appointment: " + e.getMessage());
+                                log.warn("Could not create appointment for request #{}: {}", requestId, e.getMessage());
                         }
                 }
 
@@ -126,7 +129,7 @@ public class DonationService {
                                                 request.getId());
                         }
                 } catch (Exception e) {
-                        System.err.println("Failed to send notifications: " + e.getMessage());
+                        log.warn("Failed to send notifications for donation: {}", e.getMessage());
                 }
 
                 return savedDonation;
@@ -190,9 +193,8 @@ public class DonationService {
                         }
 
                         // Notify donor if this request was matched to a donor
-                        Optional<Donation> donorDonation = donationRepository.findAll().stream()
-                                        .filter(d -> d.getRequest() != null && d.getRequest().getId().equals(requestId)
-                                                        && d.getDonor() != null)
+                        Optional<Donation> donorDonation = donationRepository.findByRequestId(requestId).stream()
+                                        .filter(d -> d.getDonor() != null)
                                         .findFirst();
 
                         if (donorDonation.isPresent() && donorDonation.get().getDonor() != null) {
@@ -205,7 +207,7 @@ public class DonationService {
                                                 request.getId());
                         }
                 } catch (Exception e) {
-                        System.err.println("Failed to send notifications: " + e.getMessage());
+                        log.warn("Failed to send notifications for hospital fulfillment: {}", e.getMessage());
                 }
 
                 return donation;

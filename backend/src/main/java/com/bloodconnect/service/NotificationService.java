@@ -67,18 +67,18 @@ public class NotificationService {
     }
 
     /**
-     * Mark all notifications as read for a user
+     * Mark all notifications as read for a user (batch update for efficiency)
      */
     @Transactional
     public void markAllAsRead(String firebaseUid) {
         User user = userRepository.findByFirebaseUid(firebaseUid)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        List<Notification> unreadNotifications = notificationRepository
+
+        List<Notification> unread = notificationRepository
                 .findByRecipientAndIsReadOrderByCreatedAtDesc(user, false);
 
-        for (Notification notification : unreadNotifications) {
-            notification.setIsRead(true);
-            notificationRepository.save(notification);
-        }
+        // Batch mark all as read and save in one call
+        unread.forEach(n -> n.setIsRead(true));
+        notificationRepository.saveAll(unread);
     }
 }

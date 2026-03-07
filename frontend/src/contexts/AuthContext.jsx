@@ -10,6 +10,8 @@ import {
   GoogleAuthProvider
 } from 'firebase/auth'
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
+
 const AuthContext = createContext()
 
 export function useAuth() {
@@ -20,13 +22,16 @@ export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // Fetch user role from database
+  /**
+   * Fetch user role from backend using Firebase UID.
+   * Returns lowercase role string ('donor' | 'hospital' | 'patient' | 'admin') or null.
+   */
   async function fetchUserRole(uid) {
     try {
-      const response = await fetch(`http://localhost:8080/api/users/${uid}/role`)
+      const response = await fetch(`${API_BASE}/users/${uid}/role`)
       if (response.ok) {
         const data = await response.json()
-        return data.role // 'donor', 'hospital', or 'patient'
+        return data.role
       }
       return null
     } catch (error) {
@@ -35,37 +40,34 @@ export function AuthProvider({ children }) {
     }
   }
 
+  /**
+   * Register a new user with Firebase, then sync to backend.
+   */
   function signup(email, password, name, role = 'donor') {
     return createUserWithEmailAndPassword(auth, email, password)
       .then(async (userCredential) => {
-        // Update display name
         await updateProfile(userCredential.user, { displayName: name })
 
-        // Sync with backend
+        // Sync new user to backend database
         try {
-          const user = userCredential.user;
-          const token = await user.getIdToken();
-
-          const response = await fetch('http://localhost:8080/api/users/sync', {
+          const response = await fetch(`${API_BASE}/users/sync`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              firebaseUid: user.uid,
-              email: user.email,
+              firebaseUid: userCredential.user.uid,
+              email: userCredential.user.email,
               role: role.toUpperCase()
             })
-          });
+          })
 
           if (!response.ok) {
-            throw new Error(`User sync failed: ${response.status}`);
+            console.error(`User sync failed: ${response.status}`)
           }
         } catch (error) {
-          console.error("Backend sync failed", error);
+          console.error('Backend sync failed:', error)
         }
 
-        return userCredential;
+        return userCredential
       })
   }
 
@@ -74,30 +76,62 @@ export function AuthProvider({ children }) {
   }
 
   function googleLogin() {
-    const provider = new GoogleAuthProvider();
-    return signInWithPopup(auth, provider);
+    const provider = new GoogleAuthProvider()
+    return signInWithPopup(auth, provider)
   }
 
   function logout() {
-    // Clear any cached data
     setCurrentUser(null)
+    localStorage.removeItem('userRole')
     return signOut(auth)
   }
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // Fetch role from database
+        // Fetch role from backend
         const role = await fetchUserRole(user.uid)
 
-        // Set current user with role from database
-        setCurrentUser({
+        const enrichedUser = {
           ...user,
-          role: role, // Role from database
           uid: user.uid,
           email: user.email,
-          name: user.displayName
-        })
+          name: user.displayName,
+          role: role,
+        }
+
+        // Cache role in localStorage for Layout role detection
+        if (role) {
+          localStorage.setItem('userRole', role)
+        }
+
+        setCurrentUser(enrichedUser)
+      } else {
+        setCurrentUser(null)
+        localStorage.removeItem('userRole')
+      }
+      setLoading(false)
+    })
+
+    return unsubscribe
+  }, [])
+
+  const value = {
+    currentUser,
+    loading,
+    signup,
+    login,
+    googleLogin,
+    logout
+  }
+
+  return (
+    <AuthContext.Provider value={value}>
+      {!loading && children}
+    </AuthContext.Provider>
+  )
+}
+
       } else {
         setCurrentUser(null)
       }
