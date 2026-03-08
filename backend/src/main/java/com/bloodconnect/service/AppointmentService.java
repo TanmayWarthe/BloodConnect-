@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class AppointmentService {
@@ -46,23 +47,29 @@ public class AppointmentService {
     }
 
     public List<Appointment> getAppointmentsByDonor(String donorUid) {
-        User user = userRepository.findByFirebaseUid(donorUid)
+        User user = userRepository.findByUid(donorUid)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         Donor donor = donorRepository.findByUser(user)
                 .orElseThrow(() -> new RuntimeException("Donor profile not found"));
-        return appointmentRepository.findByDonorId(donor.getId());
+        // FIX: null-safe unbox — donor is guaranteed non-null by orElseThrow above
+        return appointmentRepository.findByDonorId(
+                Objects.requireNonNull(donor.getId(), "Donor ID must not be null"));
     }
 
     public List<Appointment> getAppointmentsByHospital(String hospitalUid) {
-        User user = userRepository.findByFirebaseUid(hospitalUid)
+        User user = userRepository.findByUid(hospitalUid)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         Hospital hospital = hospitalRepository.findByUser(user)
                 .orElseThrow(() -> new RuntimeException("Hospital profile not found"));
-        return appointmentRepository.findByHospitalId(hospital.getId());
+        // FIX: null-safe unbox
+        return appointmentRepository.findByHospitalId(
+                Objects.requireNonNull(hospital.getId(), "Hospital ID must not be null"));
     }
 
     public Appointment completeAppointment(Long appointmentId) {
-        Appointment appointment = appointmentRepository.findById(appointmentId)
+        // FIX: null-safe unbox on method parameter
+        Appointment appointment = appointmentRepository.findById(
+                Objects.requireNonNull(appointmentId, "Appointment ID must not be null"))
                 .orElseThrow(() -> new RuntimeException("Appointment not found"));
 
         appointment.setStatus(AppointmentStatus.COMPLETED);
@@ -70,7 +77,9 @@ public class AppointmentService {
     }
 
     public Appointment cancelAppointment(Long appointmentId, String reason) {
-        Appointment appointment = appointmentRepository.findById(appointmentId)
+        // FIX: null-safe unbox on method parameter
+        Appointment appointment = appointmentRepository.findById(
+                Objects.requireNonNull(appointmentId, "Appointment ID must not be null"))
                 .orElseThrow(() -> new RuntimeException("Appointment not found"));
 
         appointment.setStatus(AppointmentStatus.CANCELLED);
@@ -79,7 +88,8 @@ public class AppointmentService {
     }
 
     public Appointment getAppointmentById(Long appointmentId) {
-        return appointmentRepository.findById(appointmentId)
+        return appointmentRepository.findById(
+                Objects.requireNonNull(appointmentId, "Appointment ID must not be null"))
                 .orElseThrow(() -> new RuntimeException("Appointment not found"));
     }
 }

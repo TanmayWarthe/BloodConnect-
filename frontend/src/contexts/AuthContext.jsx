@@ -1,14 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react'
-import { auth } from '../firebase'
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-  updateProfile,
-  signInWithPopup,
-  GoogleAuthProvider
-} from 'firebase/auth'
+import { createContext, useContext, useState } from 'react'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
 
@@ -19,134 +9,148 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }) {
-  const [currentUser, setCurrentUser] = useState(null)
-  const [loading, setLoading] = useState(true)
-
-  /**
-   * Fetch user role from backend using Firebase UID.
-   * Returns lowercase role string ('donor' | 'hospital' | 'patient' | 'admin') or null.
-   */
-  async function fetchUserRole(uid) {
-    try {
-      const response = await fetch(`${API_BASE}/users/${uid}/role`)
-      if (response.ok) {
-        const data = await response.json()
-        return data.role
+  const [currentUser, setCurrentUser] = useState(() => {
+    const token = localStorage.getItem('token')
+    const userStr = localStorage.getItem('user')
+    if (token && userStr) {
+      try {
+        return JSON.parse(userStr)
+      } catch {
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
       }
-      return null
-    } catch (error) {
-      console.error('Error fetching user role:', error)
-      return null
     }
+    return null
+  })
+  const loading = false
+
+  /**
+   * Register a new user via Spring Boot backend.
+   * POST /api/auth/register
+   * Accepts an object: { name, email, password, role, bloodGroup?, phone? }
+   * Returns: { uid, email, name, role, token }
+   */
+  async function register({ name, email, password, role, bloodGroup, phone, skipProfileCreation = false }) {
+    const response = await fetch(`${API_BASE}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password, role }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Registration failed')
+    }
+
+    const user = {
+      uid:   data.uid,
+      email: data.email,
+      name:  data.name,
+      role:  data.role,
+    }
+
+    localStorage.setItem('token', data.token)
+    localStorage.setItem('user', JSON.stringify(user))
+    setCurrentUser(user)
+
+    // After registering, auto-create the role-specific profile
+    // (donor/patient/hospital) with extra fields if provided.
+    // Skipped when RegisterPage handles profile creation itself (skipProfileCreation=true).
+    if (!skipProfileCreation) try {
+      if (role === 'donor' && bloodGroup) {
+        await fetch(`${API_BASE}/donors/register?uid=${data.uid}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${data.token}`,
+          },
+          body: JSON.stringify({ name, bloodGroup, phone: phone || '' }),
+        })
+      } else if (role === 'patient' && bloodGroup) {
+        await fetch(`${API_BASE}/patients/register?uid=${data.uid}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${data.token}`,
+          },
+          body: JSON.stringify({ name, bloodGroup, phone: phone || '' }),
+        })
+      } else if (role === 'hospital') {
+        await fetch(`${API_BASE}/hospitals/register?uid=${data.uid}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${data.token}`,
+          },
+          body: JSON.stringify({ hospitalName: name, phone: phone || '' }),
+        })
+      }
+    } catch (profileError) {
+      // Profile creation failure is non-fatal — user is registered,
+      // they can complete their profile later from the dashboard
+      console.warn('Profile auto-creation failed (non-fatal):', profileError.message)
+    }
+
+    return data
   }
 
   /**
-   * Register a new user with Firebase, then sync to backend.
+   * Login via Spring Boot backend.
+   * POST /api/auth/login
+   * Returns: { uid, email, name, role, token }
    */
-  function signup(email, password, name, role = 'donor') {
-    return createUserWithEmailAndPassword(auth, email, password)
-      .then(async (userCredential) => {
-        await updateProfile(userCredential.user, { displayName: name })
+  async function login(email, password) {
+    const response = await fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    })
 
-        // Sync new user to backend database
-        try {
-          const response = await fetch(`${API_BASE}/users/sync`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              firebaseUid: userCredential.user.uid,
-              email: userCredential.user.email,
-              role: role.toUpperCase()
-            })
-          })
+    const data = await response.json()
 
-          if (!response.ok) {
-            console.error(`User sync failed: ${response.status}`)
-          }
-        } catch (error) {
-          console.error('Backend sync failed:', error)
-        }
+    if (!response.ok) {
+      throw new Error(data.message || 'Invalid email or password')
+    }
 
-        return userCredential
-      })
+    const user = {
+      uid:   data.uid,
+      email: data.email,
+      name:  data.name,
+      role:  data.role,
+    }
+
+    localStorage.setItem('token', data.token)
+    localStorage.setItem('user', JSON.stringify(user))
+    setCurrentUser(user)
+
+    return data
   }
 
-  function login(email, password) {
-    return signInWithEmailAndPassword(auth, email, password)
-  }
-
-  function googleLogin() {
-    const provider = new GoogleAuthProvider()
-    return signInWithPopup(auth, provider)
+  /**
+   * Update the locally stored user (e.g. after profile edit)
+   */
+  function updateCurrentUser(updatedFields) {
+    setCurrentUser(prev => {
+      const updated = { ...prev, ...updatedFields }
+      localStorage.setItem('user', JSON.stringify(updated))
+      return updated
+    })
   }
 
   function logout() {
     setCurrentUser(null)
-    localStorage.removeItem('userRole')
-    return signOut(auth)
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
   }
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        // Fetch role from backend
-        const role = await fetchUserRole(user.uid)
-
-        const enrichedUser = {
-          ...user,
-          uid: user.uid,
-          email: user.email,
-          name: user.displayName,
-          role: role,
-        }
-
-        // Cache role in localStorage for Layout role detection
-        if (role) {
-          localStorage.setItem('userRole', role)
-        }
-
-        setCurrentUser(enrichedUser)
-      } else {
-        setCurrentUser(null)
-        localStorage.removeItem('userRole')
-      }
-      setLoading(false)
-    })
-
-    return unsubscribe
-  }, [])
 
   const value = {
     currentUser,
     loading,
-    signup,
+    register,   // ← was "signup" before — now matches AuthModal
     login,
-    googleLogin,
-    logout
-  }
-
-  return (
-    <AuthContext.Provider value={value}>
-      {!loading && children}
-    </AuthContext.Provider>
-  )
-}
-
-      } else {
-        setCurrentUser(null)
-      }
-      setLoading(false)
-    })
-
-    return unsubscribe
-  }, [])
-
-  const value = {
-    currentUser,
-    signup,
-    login,
-    googleLogin,
-    logout
+    logout,
+    updateCurrentUser,
   }
 
   return (

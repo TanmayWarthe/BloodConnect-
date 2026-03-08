@@ -12,7 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
+// FIX: removed unused import java.util.List (java.util.List is referenced via inline java.util.List<> below)
+import java.util.Objects;
 import java.util.Optional;
 
 @Slf4j
@@ -48,35 +49,31 @@ public class DonationService {
          */
         @Transactional
         public Donation donorAcceptRequest(String donorUid, Long requestId) {
-                // Get donor
-                User donorUser = userRepository.findByFirebaseUid(donorUid)
+                User donorUser = userRepository.findByUid(donorUid)
                                 .orElseThrow(() -> new RuntimeException("Donor user not found"));
                 Donor donor = donorRepository.findByUser(donorUser)
                                 .orElseThrow(() -> new RuntimeException("Donor profile not found"));
 
-                // Get request
-                BloodRequest request = requestRepository.findById(requestId)
+                // FIX: null-safe unbox for requestId parameter
+                BloodRequest request = requestRepository.findById(
+                                Objects.requireNonNull(requestId, "Request ID must not be null"))
                                 .orElseThrow(() -> new RuntimeException("Request not found"));
 
-                // Check if already accepted
                 if (request.getStatus() != RequestStatus.PENDING) {
                         throw new RuntimeException("Request already " + request.getStatus());
                 }
 
-                // Try to find hospital for appointment (optional)
                 Hospital hospital = null;
                 Appointment appointment = null;
 
                 if (request.getHospitalName() != null && !request.getHospitalName().isEmpty()) {
                         try {
-                                // Try to find hospital by name
                                 hospital = hospitalRepository.findAll().stream()
                                                 .filter(h -> h.getHospitalName()
                                                                 .equalsIgnoreCase(request.getHospitalName()))
                                                 .findFirst()
                                                 .orElse(null);
 
-                                // Create appointment if hospital found
                                 if (hospital != null) {
                                         appointment = appointmentService.createAppointment(
                                                         donor,
@@ -85,30 +82,26 @@ public class DonationService {
                                                         "Blood donation for request #" + requestId);
                                 }
                         } catch (Exception e) {
-                                // Log error but continue without appointment
                                 log.warn("Could not create appointment for request #{}: {}", requestId, e.getMessage());
                         }
                 }
 
-                // Create donation record with SCHEDULED status
                 Donation donation = new Donation();
                 donation.setDonor(donor);
                 donation.setRequest(request);
                 donation.setBloodGroup(request.getBloodGroup());
                 donation.setUnits(request.getUnitsRequired());
                 donation.setDonationType(DonationType.DIRECT_TO_PATIENT);
-                donation.setStatus(DonationStatus.SCHEDULED); // ✅ Not completed yet!
-                donation.setAppointment(appointment); // Can be null
+                donation.setStatus(DonationStatus.SCHEDULED);
+                donation.setAppointment(appointment);
 
-                // Update request status to MATCHED (not ACCEPTED yet)
                 request.setStatus(RequestStatus.MATCHED);
                 requestRepository.save(request);
 
                 Donation savedDonation = donationRepository.save(donation);
 
-                // 🔔 NOTIFY: Send notifications to patient and hospitals
+                // 🔔 NOTIFY
                 try {
-                        // Notify patient
                         if (request.getRequester() != null) {
                                 notificationService.createNotification(
                                                 request.getRequester(),
@@ -118,7 +111,6 @@ public class DonationService {
                                                 request.getId());
                         }
 
-                        // Notify all hospitals
                         java.util.List<Hospital> allHospitals = hospitalRepository.findAll();
                         for (Hospital h : allHospitals) {
                                 notificationService.createNotification(
@@ -140,49 +132,42 @@ public class DonationService {
          */
         @Transactional
         public Donation hospitalAcceptRequest(String hospitalUid, Long requestId) {
-                // Get hospital
-                User hospitalUser = userRepository.findByFirebaseUid(hospitalUid)
+                User hospitalUser = userRepository.findByUid(hospitalUid)
                                 .orElseThrow(() -> new RuntimeException("Hospital user not found"));
                 Hospital hospital = hospitalRepository.findByUser(hospitalUser)
                                 .orElseThrow(() -> new RuntimeException("Hospital profile not found"));
 
-                // Get request
-                BloodRequest request = requestRepository.findById(requestId)
+                // FIX: null-safe unbox for requestId parameter
+                BloodRequest request = requestRepository.findById(
+                                Objects.requireNonNull(requestId, "Request ID must not be null"))
                                 .orElseThrow(() -> new RuntimeException("Request not found"));
 
-                // Check if already accepted
                 if (request.getStatus() != RequestStatus.PENDING) {
                         throw new RuntimeException("Request already " + request.getStatus());
                 }
 
-                // ✅ VALIDATE INVENTORY FIRST (before any state changes)
                 inventoryService.validateInventory(hospitalUid, request.getBloodGroup(),
                                 request.getUnitsRequired());
 
-                // Create donation record
                 Donation donation = new Donation();
                 donation.setHospital(hospital);
                 donation.setRequest(request);
                 donation.setBloodGroup(request.getBloodGroup());
                 donation.setUnits(request.getUnitsRequired());
                 donation.setDonationType(DonationType.TO_HOSPITAL);
-                donation.setStatus(DonationStatus.COMPLETED); // Hospital fulfillment is immediate
+                donation.setStatus(DonationStatus.COMPLETED);
                 donation.setCompletedDate(LocalDateTime.now());
 
-                // Save donation first
                 donation = donationRepository.save(donation);
 
-                // Update request status
                 request.setStatus(RequestStatus.FULFILLED);
                 requestRepository.save(request);
 
-                // Deduct from hospital inventory (last, so rollback works if this fails)
                 inventoryService.updateInventory(hospitalUid, request.getBloodGroup(),
                                 -request.getUnitsRequired());
 
-                // \ud83d\udd14 NOTIFY: Send notifications to patient and donor (if exists)
+                // 🔔 NOTIFY
                 try {
-                        // Notify patient
                         if (request.getRequester() != null) {
                                 notificationService.createNotification(
                                                 request.getRequester(),
@@ -192,8 +177,10 @@ public class DonationService {
                                                 request.getId());
                         }
 
-                        // Notify donor if this request was matched to a donor
-                        Optional<Donation> donorDonation = donationRepository.findByRequestId(requestId).stream()
+                        // FIX: null-safe unbox for requestId in findByRequestId
+                        Optional<Donation> donorDonation = donationRepository.findByRequestId(
+                                        Objects.requireNonNull(requestId, "Request ID must not be null"))
+                                        .stream()
                                         .filter(d -> d.getDonor() != null)
                                         .findFirst();
 
@@ -218,41 +205,40 @@ public class DonationService {
          */
         @Transactional
         public Donation completeDonation(Long donationId) {
-                Donation donation = donationRepository.findById(donationId)
+                // FIX: null-safe unbox for donationId parameter
+                Donation donation = donationRepository.findById(
+                                Objects.requireNonNull(donationId, "Donation ID must not be null"))
                                 .orElseThrow(() -> new RuntimeException("Donation not found"));
 
                 if (donation.getStatus() != DonationStatus.SCHEDULED) {
                         throw new RuntimeException("Donation is not in SCHEDULED status");
                 }
 
-                // Update donation status
                 donation.setStatus(DonationStatus.COMPLETED);
                 donation.setCompletedDate(LocalDateTime.now());
 
-                // Update request status
                 BloodRequest request = donation.getRequest();
                 if (request != null) {
                         request.setStatus(RequestStatus.FULFILLED);
                         requestRepository.save(request);
                 }
 
-                // Update donor last donation date
                 Donor donor = donation.getDonor();
                 if (donor != null) {
                         donor.setLastDonationDate(LocalDate.now());
                         donorRepository.save(donor);
                 }
 
-                // If donation is to hospital, add to inventory
                 if (donation.getDonationType() == DonationType.TO_HOSPITAL && donation.getHospital() != null) {
                         Hospital hospital = donation.getHospital();
+                        // FIX: null-safe unbox for hospital user id
                         inventoryService.updateInventory(
-                                        hospital.getUser().getFirebaseUid(),
+                                        String.valueOf(Objects.requireNonNull(
+                                                hospital.getUser().getId(), "Hospital user ID must not be null")),
                                         donation.getBloodGroup(),
                                         donation.getUnits());
                 }
 
-                // Complete appointment if exists
                 if (donation.getAppointment() != null) {
                         appointmentService.completeAppointment(donation.getAppointment().getId());
                 }
@@ -265,24 +251,23 @@ public class DonationService {
          */
         @Transactional
         public Donation cancelDonation(Long donationId, String reason) {
-                Donation donation = donationRepository.findById(donationId)
+                // FIX: null-safe unbox for donationId parameter
+                Donation donation = donationRepository.findById(
+                                Objects.requireNonNull(donationId, "Donation ID must not be null"))
                                 .orElseThrow(() -> new RuntimeException("Donation not found"));
 
                 if (donation.getStatus() == DonationStatus.COMPLETED) {
                         throw new RuntimeException("Cannot cancel completed donation");
                 }
 
-                // Update donation status
                 donation.setStatus(DonationStatus.CANCELLED);
 
-                // Revert request to PENDING if it was matched
                 BloodRequest request = donation.getRequest();
                 if (request != null && request.getStatus() == RequestStatus.MATCHED) {
                         request.setStatus(RequestStatus.PENDING);
                         requestRepository.save(request);
                 }
 
-                // Cancel appointment if exists
                 if (donation.getAppointment() != null) {
                         appointmentService.cancelAppointment(donation.getAppointment().getId(), reason);
                 }
@@ -296,19 +281,16 @@ public class DonationService {
         @Transactional
         public Donation recordGeneralDonation(String donorUid, String hospitalUid,
                         String bloodGroup, int units) {
-                // Get donor
-                User donorUser = userRepository.findByFirebaseUid(donorUid)
+                User donorUser = userRepository.findByUid(donorUid)
                                 .orElseThrow(() -> new RuntimeException("Donor user not found"));
                 Donor donor = donorRepository.findByUser(donorUser)
                                 .orElseThrow(() -> new RuntimeException("Donor profile not found"));
 
-                // Get hospital
-                User hospitalUser = userRepository.findByFirebaseUid(hospitalUid)
+                User hospitalUser = userRepository.findByUid(hospitalUid)
                                 .orElseThrow(() -> new RuntimeException("Hospital user not found"));
                 Hospital hospital = hospitalRepository.findByUser(hospitalUser)
                                 .orElseThrow(() -> new RuntimeException("Hospital profile not found"));
 
-                // Create donation record (no request)
                 Donation donation = new Donation();
                 donation.setDonor(donor);
                 donation.setHospital(hospital);
@@ -318,47 +300,46 @@ public class DonationService {
                 donation.setStatus(DonationStatus.COMPLETED);
                 donation.setCompletedDate(LocalDateTime.now());
 
-                // Save donation
                 donation = donationRepository.save(donation);
 
-                // Add to hospital inventory
                 inventoryService.updateInventory(hospitalUid, bloodGroup, units);
 
-                // Update donor last donation date
                 donor.setLastDonationDate(LocalDate.now());
                 donorRepository.save(donor);
 
                 return donation;
         }
 
-        /**
-         * Check if a request has been accepted
-         */
         public boolean isRequestAccepted(Long requestId) {
-                Optional<Donation> donation = donationRepository.findByRequestId(requestId).stream().findFirst();
+                Optional<Donation> donation = donationRepository.findByRequestId(
+                                Objects.requireNonNull(requestId, "Request ID must not be null"))
+                                .stream().findFirst();
                 return donation.isPresent();
         }
 
-        /**
-         * Get acceptance details for a request
-         */
         public Optional<Donation> getAcceptanceDetails(Long requestId) {
-                return donationRepository.findByRequestId(requestId).stream().findFirst();
+                return donationRepository.findByRequestId(
+                                Objects.requireNonNull(requestId, "Request ID must not be null"))
+                                .stream().findFirst();
         }
 
         public java.util.List<Donation> getDonationsByDonor(String donorUid) {
-                User donorUser = userRepository.findByFirebaseUid(donorUid)
+                User donorUser = userRepository.findByUid(donorUid)
                                 .orElseThrow(() -> new RuntimeException("Donor user not found"));
                 Donor donor = donorRepository.findByUser(donorUser)
                                 .orElseThrow(() -> new RuntimeException("Donor profile not found"));
-                return donationRepository.findByDonorId(donor.getId());
+                // FIX: null-safe unbox
+                return donationRepository.findByDonorId(
+                                Objects.requireNonNull(donor.getId(), "Donor ID must not be null"));
         }
 
         public java.util.List<Donation> getDonationsByHospital(String hospitalUid) {
-                User hospitalUser = userRepository.findByFirebaseUid(hospitalUid)
+                User hospitalUser = userRepository.findByUid(hospitalUid)
                                 .orElseThrow(() -> new RuntimeException("Hospital user not found"));
                 Hospital hospital = hospitalRepository.findByUser(hospitalUser)
                                 .orElseThrow(() -> new RuntimeException("Hospital profile not found"));
-                return donationRepository.findByHospitalId(hospital.getId());
+                // FIX: null-safe unbox
+                return donationRepository.findByHospitalId(
+                                Objects.requireNonNull(hospital.getId(), "Hospital ID must not be null"));
         }
 }

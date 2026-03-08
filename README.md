@@ -71,7 +71,7 @@ A comprehensive, production-ready full-stack platform leveraging AI to optimize 
 - **Optimized AI Service**: 10-100x faster with intelligent caching
 - **Real-time Updates**: Dynamic data across all pages
 - **Responsive Design**: Mobile-first UI with Tailwind CSS
-- **Secure Authentication**: Firebase Auth with role-based access
+- **Secure Authentication**: JWT-based auth with role-based access
 
 ---
 
@@ -82,7 +82,7 @@ A comprehensive, production-ready full-stack platform leveraging AI to optimize 
 - **Styling**: Tailwind CSS
 - **Routing**: React Router v6
 - **HTTP Client**: Axios with interceptors
-- **Auth**: Firebase Authentication
+- **Auth**: JWT (JSON Web Tokens)
 - **Maps**: Google Maps API
 
 ### Backend
@@ -102,7 +102,7 @@ A comprehensive, production-ready full-stack platform leveraging AI to optimize 
 
 ### Infrastructure
 - **Database**: PostgreSQL 13+ (Supabase)
-- **Authentication**: Firebase
+- **Authentication**: JWT + Spring Security
 - **Version Control**: Git/GitHub
 - **Logging**: Structured logging with file output
 
@@ -122,8 +122,7 @@ Before you begin, ensure you have the following installed:
 | Git | Latest | [git-scm.com](https://git-scm.com/) |
 
 ### Required Accounts & API Keys
-1. **Firebase Account** - [firebase.google.com](https://firebase.google.com)
-2. **Google Cloud Account** - [cloud.google.com](https://cloud.google.com)
+1. **Google Cloud Account** - [cloud.google.com](https://cloud.google.com) (for Maps API)
 3. **Gemini API Key** - [makersuite.google.com](https://makersuite.google.com/app/apikey)
 4. **Supabase Account** (optional, for PostgreSQL) - [supabase.com](https://supabase.com)
 
@@ -183,18 +182,10 @@ spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
 spring.jpa.hibernate.ddl-auto=none
 spring.jpa.show-sql=true
 
-# Firebase Configuration
-firebase.config.path=classpath:firebase-service-account.json
+# JWT Configuration (auto-generated secret in dev mode)
+jwt.secret=your-secret-key-here
+jwt.expiration=86400000
 ```
-
-**Add Firebase Service Account:**
-
-1. Go to [Firebase Console](https://console.firebase.google.com)
-2. Select your project → Settings → Service Accounts
-3. Click "Generate New Private Key"
-4. Save as `firebase-service-account.json` in `backend/src/main/resources/`
-
-> 📖 Detailed Firebase setup: [FIREBASE_SETUP.md](FIREBASE_SETUP.md)
 
 **Install Dependencies:**
 
@@ -212,19 +203,11 @@ npm install
 **Create `.env` file in `frontend/` directory:**
 
 ```env
-# Firebase Configuration
-VITE_FIREBASE_API_KEY=AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=your-project-id
-VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
-VITE_FIREBASE_APP_ID=1:123456789:web:xxxxxxxxxxxxx
-
-# Google Maps API
-VITE_GOOGLE_MAPS_API_KEY=AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
 # Backend API URL
-VITE_API_BASE_URL=http://localhost:8086/api
+VITE_API_URL=http://localhost:8080/api
+
+# Google Maps API (optional, for map features)
+VITE_GOOGLE_MAPS_API_KEY=AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 # AI Service URL
 VITE_AI_SERVICE_URL=http://localhost:5000

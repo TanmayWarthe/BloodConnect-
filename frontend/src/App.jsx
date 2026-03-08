@@ -1,10 +1,14 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
+
 import LandingPage from './pages/LandingPage'
+import LoginPage from './pages/LoginPage'
+import RegisterPage from './pages/RegisterPage'
 import DonorDashboard from './pages/DonorDashboard'
 import HospitalDashboard from './pages/HospitalDashboard'
 import PatientDashboard from './pages/PatientDashboard'
+import AdminDashboard from './pages/AdminDashboard'
 import Profile from './pages/Profile'
 import MapPage from './pages/MapPage'
 import DonationHistory from './pages/DonationHistory'
@@ -15,13 +19,46 @@ const App = () => {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          {/* Public routes */}
           <Route path="/" element={<LandingPage />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/map" element={<MapPage />} />
-          <Route path="/history" element={<DonationHistory />} />
-          <Route path="/requests" element={<RequestHistory />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
 
-          {/* Protected Dashboard Routes */}
+          {/* Semi-protected (requires login, no role restriction) */}
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/map"
+            element={
+              <ProtectedRoute>
+                <MapPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/history"
+            element={
+              <ProtectedRoute allowedRole="donor">
+                <DonationHistory />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/requests"
+            element={
+              <ProtectedRoute allowedRole="patient">
+                <RequestHistory />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Role-protected dashboard routes */}
           <Route
             path="/donor/dashboard"
             element={
@@ -46,7 +83,16 @@ const App = () => {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/admin/dashboard"
+            element={
+              <ProtectedRoute allowedRole="admin">
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
 
+          {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
@@ -55,4 +101,3 @@ const App = () => {
 }
 
 export default App
-

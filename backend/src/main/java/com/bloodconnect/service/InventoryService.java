@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -28,37 +29,44 @@ public class InventoryService {
     /**
      * Validate that hospital has sufficient inventory before deduction
      */
-    public void validateInventory(String firebaseUid, String bloodGroup, int requiredUnits) {
-        User user = userRepository.findByFirebaseUid(firebaseUid)
+    public void validateInventory(String uid, String bloodGroup, int requiredUnits) {
+        User user = userRepository.findByUid(uid)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         Hospital hospital = hospitalRepository.findByUser(user)
                 .orElseThrow(() -> new RuntimeException("Hospital profile not found"));
 
+        // FIX: null-safe unbox — hospital is guaranteed non-null by orElseThrow above
         Optional<Inventory> inventory = inventoryRepository
-                .findByHospitalIdAndBloodGroup(hospital.getId(), bloodGroup);
+                .findByHospitalIdAndBloodGroup(
+                        Objects.requireNonNull(hospital.getId(), "Hospital ID must not be null"),
+                        bloodGroup);
 
         int available = inventory.map(Inventory::getUnitsAvailable).orElse(0);
 
         if (available < requiredUnits) {
             throw new InsufficientInventoryException(
-                    "Insufficient inventory for blood group " + bloodGroup +
-                            ". Required: " + requiredUnits + ", Available: " + available);
+                    "Insufficient inventory for blood group " + bloodGroup
+                            + ". Required: " + requiredUnits + ", Available: " + available);
         }
     }
 
-    public Inventory updateInventory(String firebaseUid, String bloodGroup, int units) {
-        User user = userRepository.findByFirebaseUid(firebaseUid)
+    public Inventory updateInventory(String uid, String bloodGroup, int units) {
+        User user = userRepository.findByUid(uid)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         Hospital hospital = hospitalRepository.findByUser(user)
                 .orElseThrow(() -> new RuntimeException("Hospital profile not found"));
 
-        Optional<Inventory> existing = inventoryRepository.findByHospitalIdAndBloodGroup(hospital.getId(), bloodGroup);
+        // FIX: null-safe unbox
+        Long hospitalId = Objects.requireNonNull(hospital.getId(), "Hospital ID must not be null");
+
+        Optional<Inventory> existing = inventoryRepository
+                .findByHospitalIdAndBloodGroup(hospitalId, bloodGroup);
+
         Inventory inv;
         if (existing.isPresent()) {
             inv = existing.get();
-            // Add units (can be negative for deduction)
             int newQuantity = inv.getUnitsAvailable() + units;
             if (newQuantity < 0) {
                 throw new RuntimeException("Insufficient inventory. Available: " + inv.getUnitsAvailable()
@@ -78,17 +86,19 @@ public class InventoryService {
         return inventoryRepository.save(inv);
     }
 
-    public List<Inventory> getInventoryByHospital(String firebaseUid) {
-        User user = userRepository.findByFirebaseUid(firebaseUid)
+    public List<Inventory> getInventoryByHospital(String uid) {
+        User user = userRepository.findByUid(uid)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         Hospital hospital = hospitalRepository.findByUser(user)
                 .orElseThrow(() -> new RuntimeException("Hospital profile not found"));
 
-        return inventoryRepository.findByHospitalId(hospital.getId());
+        // FIX: null-safe unbox
+        return inventoryRepository.findByHospitalId(
+                Objects.requireNonNull(hospital.getId(), "Hospital ID must not be null"));
     }
 
-    public Inventory addInventory(String firebaseUid, String bloodGroup, int units) {
-        return updateInventory(firebaseUid, bloodGroup, units);
+    public Inventory addInventory(String uid, String bloodGroup, int units) {
+        return updateInventory(uid, bloodGroup, units);
     }
 }

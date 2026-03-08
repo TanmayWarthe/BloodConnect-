@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -20,12 +21,11 @@ public class DonorService {
     @Autowired
     private UserRepository userRepository;
 
-    /** Register a new donor profile for an existing Firebase user */
-    public Donor registerDonor(String firebaseUid, Donor donorData) {
-        User user = userRepository.findByFirebaseUid(firebaseUid)
-                .orElseThrow(() -> new RuntimeException("User not found with UID: " + firebaseUid));
+    /** Register a new donor profile for an existing user */
+    public Donor registerDonor(String uid, Donor donorData) {
+        User user = userRepository.findByUid(uid)
+                .orElseThrow(() -> new RuntimeException("User not found with UID: " + uid));
 
-        // Prevent duplicate registration
         if (donorRepository.findByUser(user).isPresent()) {
             throw new RuntimeException("Donor profile already exists for this user");
         }
@@ -34,36 +34,38 @@ public class DonorService {
         return donorRepository.save(donorData);
     }
 
-    /** Retrieve donor profile by Firebase UID */
-    public Donor getDonorByUid(String firebaseUid) {
-        User user = userRepository.findByFirebaseUid(firebaseUid)
-                .orElseThrow(() -> new RuntimeException("User not found with UID: " + firebaseUid));
+    /** Retrieve donor profile by UID */
+    public Donor getDonorByUid(String uid) {
+        User user = userRepository.findByUid(uid)
+                .orElseThrow(() -> new RuntimeException("User not found with UID: " + uid));
 
         return donorRepository.findByUser(user)
                 .orElseThrow(() -> new RuntimeException("Donor profile not found"));
     }
 
     /** Update donor profile fields (only non-null fields are overwritten) */
-    public Donor updateDonor(String firebaseUid, Donor donorData) {
-        Donor existing = getDonorByUid(firebaseUid);
+    public Donor updateDonor(String uid, Donor donorData) {
+        Donor existing = getDonorByUid(uid);
 
-        if (donorData.getName() != null) existing.setName(donorData.getName());
-        if (donorData.getBloodGroup() != null) existing.setBloodGroup(donorData.getBloodGroup());
-        if (donorData.getRhFactor() != null) existing.setRhFactor(donorData.getRhFactor());
-        if (donorData.getDob() != null) existing.setDob(donorData.getDob());
-        if (donorData.getGender() != null) existing.setGender(donorData.getGender());
-        if (donorData.getPhone() != null) existing.setPhone(donorData.getPhone());
-        if (donorData.getAddress() != null) existing.setAddress(donorData.getAddress());
-        if (donorData.getLatitude() != null) existing.setLatitude(donorData.getLatitude());
-        if (donorData.getLongitude() != null) existing.setLongitude(donorData.getLongitude());
+        if (donorData.getName() != null)             existing.setName(donorData.getName());
+        if (donorData.getBloodGroup() != null)       existing.setBloodGroup(donorData.getBloodGroup());
+        if (donorData.getRhFactor() != null)         existing.setRhFactor(donorData.getRhFactor());
+        if (donorData.getDob() != null)              existing.setDob(donorData.getDob());
+        if (donorData.getGender() != null)           existing.setGender(donorData.getGender());
+        if (donorData.getPhone() != null)            existing.setPhone(donorData.getPhone());
+        if (donorData.getAddress() != null)          existing.setAddress(donorData.getAddress());
+        if (donorData.getLatitude() != null)         existing.setLatitude(donorData.getLatitude());
+        if (donorData.getLongitude() != null)        existing.setLongitude(donorData.getLongitude());
         if (donorData.getLastDonationDate() != null) existing.setLastDonationDate(donorData.getLastDonationDate());
 
-        return donorRepository.save(existing);
+        // FIX: getDonorByUid throws if not found, so existing is never null here.
+        // Objects.requireNonNull makes this contract explicit to the null checker.
+        return donorRepository.save(Objects.requireNonNull(existing, "Donor must not be null"));
     }
 
-    /** Update availability status by Firebase UID */
-    public Donor updateAvailability(String firebaseUid, String status) {
-        Donor donor = getDonorByUid(firebaseUid);
+    /** Update availability status by UID */
+    public Donor updateAvailability(String uid, String status) {
+        Donor donor = getDonorByUid(uid);
 
         AvailabilityStatus newStatus;
         try {
@@ -74,7 +76,7 @@ public class DonorService {
         }
 
         donor.setAvailabilityStatus(newStatus);
-        return donorRepository.save(donor);
+        return donorRepository.save(Objects.requireNonNull(donor, "Donor must not be null"));
     }
 
     /**
@@ -85,7 +87,6 @@ public class DonorService {
         List<Donor> candidates = donorRepository.findByBloodGroupAndAvailabilityStatus(
                 bloodGroup, AvailabilityStatus.AVAILABLE);
 
-        // Filter by distance if coordinates are provided
         if (lat != null && lng != null) {
             return candidates.stream()
                     .filter(d -> d.getLatitude() != null && d.getLongitude() != null)

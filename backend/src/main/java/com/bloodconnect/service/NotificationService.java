@@ -19,45 +19,41 @@ public class NotificationService {
     @Autowired
     private UserRepository userRepository;
 
-    /**
-     * Create a new notification for a user
-     */
+    /** Create a new notification for a user */
     @Transactional
     public Notification createNotification(User recipient, String type, String message, Long relatedRequestId) {
         Notification notification = new Notification(recipient, type, message, relatedRequestId);
         return notificationRepository.save(notification);
     }
 
-    /**
-     * Get all notifications for a user by Firebase UID
-     */
-    public List<Notification> getAllNotifications(String firebaseUid) {
-        User user = userRepository.findByFirebaseUid(firebaseUid)
+    /** Get all notifications for a user by UID */
+    public List<Notification> getAllNotifications(String uid) {
+        User user = userRepository.findByUid(uid)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return notificationRepository.findByRecipientOrderByCreatedAtDesc(user);
     }
 
-    /**
-     * Get unread notifications for a user
-     */
-    public List<Notification> getUnreadNotifications(String firebaseUid) {
-        User user = userRepository.findByFirebaseUid(firebaseUid)
+    /** Get unread notifications for a user */
+    public List<Notification> getUnreadNotifications(String uid) {
+        User user = userRepository.findByUid(uid)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return notificationRepository.findByRecipientAndIsReadOrderByCreatedAtDesc(user, false);
     }
 
     /**
-     * Get unread notification count
+     * Get unread notification count.
+     * FIX: countBy returns a boxed Long which Spring Data annotates @NonNull,
+     * but can theoretically be null in edge cases. We default to 0L safely.
      */
-    public Long getUnreadCount(String firebaseUid) {
-        User user = userRepository.findByFirebaseUid(firebaseUid)
+    public long getUnreadCount(String uid) {
+        User user = userRepository.findByUid(uid)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        return notificationRepository.countByRecipientAndIsRead(user, false);
+        Long count = notificationRepository.countByRecipientAndIsRead(user, false);
+        // FIX: return primitive long — avoids @NonNull Long warning and NPE risk
+        return count != null ? count : 0L;
     }
 
-    /**
-     * Mark a notification as read
-     */
+    /** Mark a notification as read */
     @Transactional
     public Notification markAsRead(Long notificationId) {
         Notification notification = notificationRepository.findById(notificationId)
@@ -70,14 +66,13 @@ public class NotificationService {
      * Mark all notifications as read for a user (batch update for efficiency)
      */
     @Transactional
-    public void markAllAsRead(String firebaseUid) {
-        User user = userRepository.findByFirebaseUid(firebaseUid)
+    public void markAllAsRead(String uid) {
+        User user = userRepository.findByUid(uid)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         List<Notification> unread = notificationRepository
                 .findByRecipientAndIsReadOrderByCreatedAtDesc(user, false);
 
-        // Batch mark all as read and save in one call
         unread.forEach(n -> n.setIsRead(true));
         notificationRepository.saveAll(unread);
     }
