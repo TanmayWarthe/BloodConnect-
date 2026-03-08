@@ -154,8 +154,8 @@ export default function LandingPage() {
       {/* ── HERO ────────────────────────────────────────────────── */}
       <section className="relative min-h-screen flex flex-col justify-center pt-24 pb-16 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/4 right-0 w-[600px] h-[600px] bg-red-50 rounded-full translate-x-1/2 -translate-y-1/4" />
-          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-red-50 rounded-full -translate-x-1/2 translate-y-1/4" />
+          <div className="absolute top-1/4 right-0 w-150 h-150 bg-red-50 rounded-full translate-x-1/2 -translate-y-1/4" />
+          <div className="absolute bottom-0 left-0 w-100 h-100 bg-red-50 rounded-full -translate-x-1/2 translate-y-1/4" />
           <div className="absolute inset-0 opacity-[0.03]"
             style={{ backgroundImage: 'radial-gradient(circle, #ef4444 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
         </div>

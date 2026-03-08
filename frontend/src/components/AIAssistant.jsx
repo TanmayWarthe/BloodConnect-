@@ -80,7 +80,7 @@ const AIAssistant = () => {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 p-4 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all z-50 flex items-center gap-2"
+        className="fixed bottom-6 right-6 p-4 bg-linear-to-r from-red-500 to-red-600 text-white rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all z-50 flex items-center gap-2"
       >
         <FiMessageCircle className="text-xl" />
         <span className="font-semibold">Chat</span>
@@ -89,9 +89,9 @@ const AIAssistant = () => {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 flex flex-col">
+    <div className="fixed bottom-6 right-6 w-96 h-150 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 flex flex-col">
       {/* Header */}
-      <div className="bg-gradient-to-r from-red-500 to-red-600 p-4 rounded-t-2xl flex items-center justify-between text-white">
+      <div className="bg-linear-to-r from-red-500 to-red-600 p-4 rounded-t-2xl flex items-center justify-between text-white">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
             <FiCpu className="text-xl" />

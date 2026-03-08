@@ -24,7 +24,7 @@ const ProfileDropdown = ({ userName, userRole, handleLogout }) => {
     <div className="relative">
       <button onClick={() => setIsOpen(v => !v)} className="flex items-center gap-3 focus:outline-none">
         <div className="hidden md:block text-right">
-          <p className="text-sm font-semibold text-gray-800 truncate max-w-[140px]">{userName}</p>
+          <p className="text-sm font-semibold text-gray-800 truncate max-w-35">{userName}</p>
           <p className="text-xs text-gray-500 capitalize">{userRole}</p>
         </div>
         <div className="relative">
@@ -126,7 +126,7 @@ const Layout = ({ children }) => {
         {/* Logo */}
         <div className="flex items-center h-20 px-6 border-b border-gray-200 shrink-0">
           <Link to="/" onClick={() => setSidebarOpen(false)} className="flex items-center gap-2.5">
-            <div className="w-9 h-9 bg-gradient-to-br from-red-500 to-red-700 rounded-lg flex items-center justify-center">
+            <div className="w-9 h-9 bg-linear-to-br from-red-500 to-red-700 rounded-lg flex items-center justify-center">
               <FiDroplet className="text-white text-lg" />
             </div>
             <span className="text-xl font-bold text-gray-900">BloodConnect</span>

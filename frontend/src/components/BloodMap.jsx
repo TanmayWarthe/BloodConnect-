@@ -22,7 +22,7 @@ const DonorPanel = ({ donor, onClose }) => {
 
   return (
     <div className="absolute top-4 right-4 z-10 w-72 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
-      <div className="bg-gradient-to-r from-red-500 to-red-600 p-4 flex items-center justify-between text-white">
+      <div className="bg-linear-to-r from-red-500 to-red-600 p-4 flex items-center justify-between text-white">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center font-bold">
             {donor.name?.charAt(0).toUpperCase()}
@@ -294,7 +294,7 @@ const BloodMap = () => {
       </div>
 
       {/* ── Map container ─────────────────────────────────────── */}
-      <div className="flex-1 relative rounded-2xl overflow-hidden border border-gray-200 shadow-sm min-h-[400px]">
+      <div className="flex-1 relative rounded-2xl overflow-hidden border border-gray-200 shadow-sm min-h-100">
         {/* Loading overlay */}
         {(loading || !mapLoaded) && (
           <div className="absolute inset-0 bg-gray-100 flex items-center justify-center z-10">

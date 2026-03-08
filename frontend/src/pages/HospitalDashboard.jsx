@@ -44,6 +44,7 @@ export default function HospitalDashboard() {
   const [invForm, setInvForm] = useState({ bloodGroup: '', units: 1, action: 'add' })
   const [reqForm, setReqForm] = useState({ bloodGroup: '', unitsRequired: 1, urgency: 'NORMAL', patientName: '' })
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchData() }, [currentUser])
 
   const fetchData = async () => {
