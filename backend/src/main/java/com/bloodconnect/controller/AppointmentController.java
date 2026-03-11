@@ -19,7 +19,7 @@ public class AppointmentController {
     private AppointmentService appointmentService;
 
     @GetMapping("/donor/{uid}")
-    public ResponseEntity<?> getDonorAppointments(@PathVariable String uid) {
+    public ResponseEntity<?> getDonorAppointments(@PathVariable("uid") String uid) {
         try {
             List<Appointment> appointments = appointmentService.getAppointmentsByDonor(uid);
             return ResponseEntity.ok(appointments);
@@ -31,7 +31,7 @@ public class AppointmentController {
     }
 
     @GetMapping("/hospital/{uid}")
-    public ResponseEntity<?> getHospitalAppointments(@PathVariable String uid) {
+    public ResponseEntity<?> getHospitalAppointments(@PathVariable("uid") String uid) {
         try {
             List<Appointment> appointments = appointmentService.getAppointmentsByHospital(uid);
             return ResponseEntity.ok(appointments);
@@ -43,7 +43,7 @@ public class AppointmentController {
     }
 
     @PostMapping("/{id}/complete")
-    public ResponseEntity<?> completeAppointment(@PathVariable Long id) {
+    public ResponseEntity<?> completeAppointment(@PathVariable("id") Long id) {
         try {
             Appointment appointment = appointmentService.completeAppointment(id);
             return ResponseEntity.ok(appointment);
@@ -55,7 +55,7 @@ public class AppointmentController {
     }
 
     @PostMapping("/{id}/cancel")
-    public ResponseEntity<?> cancelAppointment(@PathVariable Long id, @RequestParam String reason) {
+    public ResponseEntity<?> cancelAppointment(@PathVariable("id") Long id, @RequestParam("reason") String reason) {
         try {
             Appointment appointment = appointmentService.cancelAppointment(id, reason);
             return ResponseEntity.ok(appointment);

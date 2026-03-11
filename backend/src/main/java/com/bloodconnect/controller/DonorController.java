@@ -18,9 +18,15 @@ public class DonorController {
     @Autowired
     private DonorService donorService;
 
+    /** Get all donors (used by the map to show markers) */
+    @GetMapping
+    public ResponseEntity<List<Donor>> getAllDonors() {
+        return ResponseEntity.ok(donorService.getAllDonors());
+    }
+
     /** Register a new donor profile linked to a Firebase user */
     @PostMapping("/register")
-    public ResponseEntity<?> registerDonor(@RequestParam String uid, @RequestBody Donor donor) {
+    public ResponseEntity<?> registerDonor(@RequestParam("uid") String uid, @RequestBody Donor donor) {
         try {
             Donor registered = donorService.registerDonor(uid, donor);
             return ResponseEntity.ok(registered);
@@ -33,7 +39,7 @@ public class DonorController {
 
     /** Get donor profile by Firebase UID */
     @GetMapping("/{uid}")
-    public ResponseEntity<?> getDonorProfile(@PathVariable String uid) {
+    public ResponseEntity<?> getDonorProfile(@PathVariable("uid") String uid) {
         try {
             Donor donor = donorService.getDonorByUid(uid);
             return ResponseEntity.ok(donor);
@@ -46,7 +52,7 @@ public class DonorController {
 
     /** Update donor profile by Firebase UID */
     @PutMapping("/{uid}")
-    public ResponseEntity<?> updateDonorProfile(@PathVariable String uid, @RequestBody Donor donor) {
+    public ResponseEntity<?> updateDonorProfile(@PathVariable("uid") String uid, @RequestBody Donor donor) {
         try {
             Donor updated = donorService.updateDonor(uid, donor);
             return ResponseEntity.ok(updated);
@@ -60,8 +66,8 @@ public class DonorController {
     /** Update donor availability status */
     @PutMapping("/availability/{uid}")
     public ResponseEntity<?> updateAvailability(
-            @PathVariable String uid,
-            @RequestParam String status) {
+            @PathVariable("uid") String uid,
+            @RequestParam("status") String status) {
         try {
             Donor updated = donorService.updateAvailability(uid, status);
             return ResponseEntity.ok(updated);
@@ -75,10 +81,10 @@ public class DonorController {
     /** Find nearby available donors by blood group and optional location */
     @GetMapping("/nearby")
     public ResponseEntity<List<Donor>> findNearby(
-            @RequestParam String bloodGroup,
-            @RequestParam(required = false) Double lat,
-            @RequestParam(required = false) Double lng,
-            @RequestParam(required = false, defaultValue = "50") Double radius) {
+            @RequestParam("bloodGroup") String bloodGroup,
+            @RequestParam(name = "lat", required = false) Double lat,
+            @RequestParam(name = "lng", required = false) Double lng,
+            @RequestParam(name = "radius", required = false, defaultValue = "50") Double radius) {
         return ResponseEntity.ok(donorService.findNearbyDonors(bloodGroup, lat, lng, radius));
     }
 }

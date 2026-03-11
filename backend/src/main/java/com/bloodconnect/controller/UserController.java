@@ -83,14 +83,14 @@ public class UserController {
     // ----------------------------------------------------------------
 
     @GetMapping("/users/{uid}")
-    public ResponseEntity<User> getUser(@PathVariable String uid) {
+    public ResponseEntity<User> getUser(@PathVariable("uid") String uid) {
         return userRepository.findByUid(uid)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/users/{uid}/role")
-    public ResponseEntity<?> getUserRole(@PathVariable String uid) {
+    public ResponseEntity<?> getUserRole(@PathVariable("uid") String uid) {
         return userRepository.findByUid(uid)
                 .map(user -> {
                     Map<String, String> response = new HashMap<>();

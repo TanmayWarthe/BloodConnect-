@@ -20,7 +20,7 @@ public class InventoryController {
 
     /** Get full inventory list for a hospital */
     @GetMapping("/hospital/{uid}")
-    public ResponseEntity<?> getHospitalInventory(@PathVariable String uid) {
+    public ResponseEntity<?> getHospitalInventory(@PathVariable("uid") String uid) {
         try {
             List<Inventory> inventory = inventoryService.getInventoryByHospital(uid);
             return ResponseEntity.ok(inventory);
@@ -33,18 +33,18 @@ public class InventoryController {
 
     /**
      * Update inventory for a blood group.
-     * operation param: ADD (default) or REMOVE.
-     * For REMOVE, units will be deducted; negative counts are rejected.
+     * Expects JSON body: { "bloodGroup": "A+", "units": 5 }
+     * units can be negative (removal) or positive (addition).
+     * Negative result is rejected by the service layer.
      */
     @PostMapping("/hospital/{uid}/update")
     public ResponseEntity<?> updateInventory(
-            @PathVariable String uid,
-            @RequestParam String bloodGroup,
-            @RequestParam int units,
-            @RequestParam(required = false, defaultValue = "ADD") String operation) {
+            @PathVariable("uid") String uid,
+            @RequestBody Map<String, Object> body) {
         try {
-            int delta = "REMOVE".equalsIgnoreCase(operation) ? -units : units;
-            Inventory updated = inventoryService.updateInventory(uid, bloodGroup, delta);
+            String bloodGroup = (String) body.get("bloodGroup");
+            int units = ((Number) body.get("units")).intValue();
+            Inventory updated = inventoryService.updateInventory(uid, bloodGroup, units);
             return ResponseEntity.ok(updated);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
@@ -56,9 +56,9 @@ public class InventoryController {
     /** Explicit add endpoint (always positive delta) */
     @PostMapping("/hospital/{uid}/add")
     public ResponseEntity<?> addInventory(
-            @PathVariable String uid,
-            @RequestParam String bloodGroup,
-            @RequestParam int units) {
+            @PathVariable("uid") String uid,
+            @RequestParam("bloodGroup") String bloodGroup,
+            @RequestParam("units") int units) {
         try {
             if (units <= 0) {
                 Map<String, String> error = new HashMap<>();

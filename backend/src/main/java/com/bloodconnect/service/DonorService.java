@@ -21,6 +21,11 @@ public class DonorService {
     @Autowired
     private UserRepository userRepository;
 
+    /** Get all donor profiles */
+    public List<Donor> getAllDonors() {
+        return donorRepository.findAll();
+    }
+
     /** Register a new donor profile for an existing user */
     public Donor registerDonor(String uid, Donor donorData) {
         User user = userRepository.findByUid(uid)

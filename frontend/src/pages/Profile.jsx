@@ -4,7 +4,7 @@ import {
   FiUser, FiEdit2, FiSave, FiX, FiMail, FiCalendar,
   FiMapPin, FiPhone, FiDroplet, FiActivity, FiShield,
   FiHeart, FiUpload, FiCheckCircle, FiAlertCircle,
-  FiLock, FiChevronDown, FiCamera, FiTrendingUp
+  FiLock, FiChevronDown, FiCamera, FiTrendingUp, FiNavigation
 } from 'react-icons/fi'
 import { useAuth } from '../contexts/AuthContext'
 import { apiService } from '../services/api.service'
@@ -45,6 +45,7 @@ export default function Profile() {
   const [profileImage, setProfileImage] = useState(null)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [locating, setLocating]       = useState(false)
   const [saveError, setSaveError]   = useState('')
   const fileInputRef = useRef(null)
 
@@ -71,6 +72,8 @@ export default function Profile() {
         totalDonations: p.totalDonations || 0,
         status:         p.availabilityStatus || p.status || 'Active',
         memberSince:    p.createdAt ? new Date(p.createdAt).getFullYear() : new Date().getFullYear(),
+        latitude:       p.latitude != null ? String(p.latitude) : '',
+        longitude:      p.longitude != null ? String(p.longitude) : '',
         exists:         true,
       }
       setProfileData(transformed)
@@ -81,7 +84,8 @@ export default function Profile() {
           fullName: currentUser.name || currentUser.email?.split('@')[0] || '',
           email: currentUser.email || '', phone: '', location: '', birthDate: '',
           bloodGroup: '', lastDonation: '', totalDonations: 0,
-          status: 'Pending', memberSince: new Date().getFullYear(), exists: false,
+          status: 'Pending', memberSince: new Date().getFullYear(),
+          latitude: '', longitude: '', exists: false,
         }
         setProfileData(empty); setEditData(empty); setIsEditing(true)
       } else { console.error(err) }
@@ -94,6 +98,23 @@ export default function Profile() {
   const handleCancel = () => { setIsEditing(false); setSaveError('') }
   const set          = (field, value) => setEditData(p => ({ ...p, [field]: value }))
 
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) { alert('Geolocation not supported'); return }
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        set('latitude',  pos.coords.latitude)
+        set('longitude', pos.coords.longitude)
+        setLocating(false)
+      },
+      () => {
+        alert('Could not get location. Please allow location access.')
+        setLocating(false)
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
+  }
+
   const handleSave = async () => {
     if (!currentUser?.uid) return
     setSaving(true); setSaveError('')
@@ -102,7 +123,12 @@ export default function Profile() {
       let endpoint = '', payload = {}
       if (userRole === 'donor') {
         endpoint = isNew ? `/donors/register?uid=${currentUser.uid}` : `/donors/${currentUser.uid}`
-        payload  = { name: editData.fullName, phone: editData.phone, address: editData.location, bloodGroup: editData.bloodGroup, dob: editData.birthDate || null }
+        payload  = {
+          name: editData.fullName, phone: editData.phone, address: editData.location,
+          bloodGroup: editData.bloodGroup, dob: editData.birthDate || null,
+          latitude:  editData.latitude  ? parseFloat(editData.latitude)  : null,
+          longitude: editData.longitude ? parseFloat(editData.longitude) : null,
+        }
       } else if (userRole === 'patient') {
         endpoint = isNew ? `/patients/register?uid=${currentUser.uid}` : `/patients/${currentUser.uid}`
         payload  = { name: editData.fullName, phone: editData.phone, address: editData.location, bloodGroup: editData.bloodGroup, dob: editData.birthDate || null }
@@ -380,6 +406,48 @@ export default function Profile() {
                         {isEditing
                           ? <InputField type="date" value={editData.birthDate} onChange={v => set('birthDate', v)} />
                           : <StaticValue value={profileData?.birthDate ? new Date(profileData.birthDate).toLocaleDateString() : ''} />}
+                      </Field>
+                    )}
+
+                    {userRole === 'donor' && (
+                      <Field label="Your Location (for map)">
+                        {isEditing ? (
+                          <div className="space-y-2">
+                            <div className="flex gap-2">
+                              <input
+                                type="number" step="any"
+                                value={editData.latitude || ''}
+                                onChange={e => set('latitude', e.target.value)}
+                                placeholder="Latitude (e.g. 28.6139)"
+                                className="flex-1 px-3 py-2.5 bg-white border-2 border-gray-100 focus:border-red-400 rounded-xl text-sm font-medium text-gray-900 placeholder-gray-300 focus:outline-none"
+                              />
+                              <input
+                                type="number" step="any"
+                                value={editData.longitude || ''}
+                                onChange={e => set('longitude', e.target.value)}
+                                placeholder="Longitude (e.g. 77.2090)"
+                                className="flex-1 px-3 py-2.5 bg-white border-2 border-gray-100 focus:border-red-400 rounded-xl text-sm font-medium text-gray-900 placeholder-gray-300 focus:outline-none"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleGetLocation}
+                              disabled={locating}
+                              className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-500 hover:bg-blue-600 disabled:opacity-60 text-white text-sm font-bold rounded-xl transition-colors">
+                              {locating ? (
+                                <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Getting location...</>
+                              ) : (
+                                <><FiNavigation size={14} /> Use My Current Location</>
+                              )}
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-700">
+                            {profileData?.latitude && profileData?.longitude
+                              ? `${parseFloat(profileData.latitude).toFixed(4)}, ${parseFloat(profileData.longitude).toFixed(4)}`
+                              : <span className="text-gray-300">Not set</span>}
+                          </div>
+                        )}
                       </Field>
                     )}
                   </div>

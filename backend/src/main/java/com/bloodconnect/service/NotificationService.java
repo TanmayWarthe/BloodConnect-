@@ -62,6 +62,7 @@ public class NotificationService {
         notification.setIsRead(true);
         return notificationRepository.save(notification);
     }
+    
 
     /**
      * Mark all notifications as read for a user (batch update for efficiency)

@@ -18,7 +18,7 @@ public class PatientController {
     private PatientService patientService;
 
     @PostMapping("/register")
-    public ResponseEntity<?> registerPatient(@RequestParam String uid, @RequestBody Patient patient) {
+    public ResponseEntity<?> registerPatient(@RequestParam("uid") String uid, @RequestBody Patient patient) {
         try {
             Patient registered = patientService.registerPatient(uid, patient);
             return ResponseEntity.ok(registered);
@@ -30,7 +30,7 @@ public class PatientController {
     }
 
     @GetMapping("/{uid}")
-    public ResponseEntity<?> getPatient(@PathVariable String uid) {
+    public ResponseEntity<?> getPatient(@PathVariable("uid") String uid) {
         try {
             Patient patient = patientService.getPatientByUid(uid);
             return ResponseEntity.ok(patient);
@@ -42,7 +42,7 @@ public class PatientController {
     }
 
     @PutMapping("/{uid}")
-    public ResponseEntity<?> updatePatient(@PathVariable String uid, @RequestBody Patient patient) {
+    public ResponseEntity<?> updatePatient(@PathVariable("uid") String uid, @RequestBody Patient patient) {
         try {
             Patient updated = patientService.updatePatient(uid, patient);
             return ResponseEntity.ok(updated);

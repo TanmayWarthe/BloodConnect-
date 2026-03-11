@@ -22,7 +22,7 @@ public class NotificationController {
      * Get all notifications for a user
      */
     @GetMapping("/{uid}")
-    public ResponseEntity<List<Notification>> getAllNotifications(@PathVariable String uid) {
+    public ResponseEntity<List<Notification>> getAllNotifications(@PathVariable("uid") String uid) {
         List<Notification> notifications = notificationService.getAllNotifications(uid);
         return ResponseEntity.ok(notifications);
     }
@@ -31,7 +31,7 @@ public class NotificationController {
      * Get unread notifications for a user
      */
     @GetMapping("/{uid}/unread")
-    public ResponseEntity<List<Notification>> getUnreadNotifications(@PathVariable String uid) {
+    public ResponseEntity<List<Notification>> getUnreadNotifications(@PathVariable("uid") String uid) {
         List<Notification> notifications = notificationService.getUnreadNotifications(uid);
         return ResponseEntity.ok(notifications);
     }
@@ -40,7 +40,7 @@ public class NotificationController {
      * Get unread notification count
      */
     @GetMapping("/{uid}/count")
-    public ResponseEntity<Map<String, Long>> getUnreadCount(@PathVariable String uid) {
+    public ResponseEntity<Map<String, Long>> getUnreadCount(@PathVariable("uid") String uid) {
         Long count = notificationService.getUnreadCount(uid);
         Map<String, Long> response = new HashMap<>();
         response.put("count", count);
@@ -51,7 +51,7 @@ public class NotificationController {
      * Mark a notification as read
      */
     @PutMapping("/{id}/read")
-    public ResponseEntity<Notification> markAsRead(@PathVariable Long id) {
+    public ResponseEntity<Notification> markAsRead(@PathVariable("id") Long id) {
         Notification notification = notificationService.markAsRead(id);
         return ResponseEntity.ok(notification);
     }
@@ -60,7 +60,7 @@ public class NotificationController {
      * Mark all notifications as read for a user
      */
     @PutMapping("/{uid}/read-all")
-    public ResponseEntity<Map<String, String>> markAllAsRead(@PathVariable String uid) {
+    public ResponseEntity<Map<String, String>> markAllAsRead(@PathVariable("uid") String uid) {
         notificationService.markAllAsRead(uid);
         Map<String, String> response = new HashMap<>();
         response.put("message", "All notifications marked as read");

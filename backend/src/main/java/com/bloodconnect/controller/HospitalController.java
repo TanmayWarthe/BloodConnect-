@@ -20,7 +20,7 @@ public class HospitalController {
 
     /** Register a new hospital profile linked to a Firebase user */
     @PostMapping("/register")
-    public ResponseEntity<?> registerHospital(@RequestParam String uid, @RequestBody Hospital hospital) {
+    public ResponseEntity<?> registerHospital(@RequestParam("uid") String uid, @RequestBody Hospital hospital) {
         try {
             Hospital registered = hospitalService.registerHospital(uid, hospital);
             return ResponseEntity.ok(registered);
@@ -33,7 +33,7 @@ public class HospitalController {
 
     /** Get hospital profile by Firebase UID */
     @GetMapping("/profile/{uid}")
-    public ResponseEntity<?> getHospitalProfile(@PathVariable String uid) {
+    public ResponseEntity<?> getHospitalProfile(@PathVariable("uid") String uid) {
         try {
             Hospital hospital = hospitalService.getHospitalByUid(uid);
             return ResponseEntity.ok(hospital);
@@ -46,7 +46,7 @@ public class HospitalController {
 
     /** Update hospital profile by Firebase UID */
     @PutMapping("/{uid}")
-    public ResponseEntity<?> updateHospital(@PathVariable String uid, @RequestBody Hospital hospital) {
+    public ResponseEntity<?> updateHospital(@PathVariable("uid") String uid, @RequestBody Hospital hospital) {
         try {
             Hospital updated = hospitalService.updateHospital(uid, hospital);
             return ResponseEntity.ok(updated);

@@ -23,8 +23,8 @@ public class DonationController {
      */
     @PostMapping("/donor/{uid}/accept/{requestId}")
     public ResponseEntity<?> donorAcceptRequest(
-            @PathVariable String uid,
-            @PathVariable Long requestId) {
+            @PathVariable("uid") String uid,
+            @PathVariable("requestId") Long requestId) {
         try {
             Donation donation = donationService.donorAcceptRequest(uid, requestId);
             return ResponseEntity.ok(donation);
@@ -40,8 +40,8 @@ public class DonationController {
      */
     @PostMapping("/hospital/{uid}/accept/{requestId}")
     public ResponseEntity<?> hospitalAcceptRequest(
-            @PathVariable String uid,
-            @PathVariable Long requestId) {
+            @PathVariable("uid") String uid,
+            @PathVariable("requestId") Long requestId) {
         try {
             Donation donation = donationService.hospitalAcceptRequest(uid, requestId);
             return ResponseEntity.ok(donation);
@@ -56,7 +56,7 @@ public class DonationController {
      * Complete a scheduled donation
      */
     @PostMapping("/{id}/complete")
-    public ResponseEntity<?> completeDonation(@PathVariable Long id) {
+    public ResponseEntity<?> completeDonation(@PathVariable("id") Long id) {
         try {
             Donation donation = donationService.completeDonation(id);
             return ResponseEntity.ok(donation);
@@ -71,7 +71,7 @@ public class DonationController {
      * Cancel a donation
      */
     @PostMapping("/{id}/cancel")
-    public ResponseEntity<?> cancelDonation(@PathVariable Long id, @RequestParam String reason) {
+    public ResponseEntity<?> cancelDonation(@PathVariable("id") Long id, @RequestParam("reason") String reason) {
         try {
             Donation donation = donationService.cancelDonation(id, reason);
             return ResponseEntity.ok(donation);
@@ -87,10 +87,10 @@ public class DonationController {
      */
     @PostMapping("/general")
     public ResponseEntity<?> recordGeneralDonation(
-            @RequestParam String donorUid,
-            @RequestParam String hospitalUid,
-            @RequestParam String bloodGroup,
-            @RequestParam int units) {
+            @RequestParam("donorUid") String donorUid,
+            @RequestParam("hospitalUid") String hospitalUid,
+            @RequestParam("bloodGroup") String bloodGroup,
+            @RequestParam("units") int units) {
         try {
             Donation donation = donationService.recordGeneralDonation(
                     donorUid, hospitalUid, bloodGroup, units);
@@ -106,7 +106,7 @@ public class DonationController {
      * Check if request is already accepted
      */
     @GetMapping("/request/{requestId}/status")
-    public ResponseEntity<Map<String, Object>> getRequestStatus(@PathVariable Long requestId) {
+    public ResponseEntity<Map<String, Object>> getRequestStatus(@PathVariable("requestId") Long requestId) {
         Map<String, Object> response = new HashMap<>();
         boolean isAccepted = donationService.isRequestAccepted(requestId);
         response.put("isAccepted", isAccepted);
@@ -128,12 +128,12 @@ public class DonationController {
     }
 
     @GetMapping("/donor/{uid}")
-    public ResponseEntity<java.util.List<Donation>> getDonorHistory(@PathVariable String uid) {
+    public ResponseEntity<java.util.List<Donation>> getDonorHistory(@PathVariable("uid") String uid) {
         return ResponseEntity.ok(donationService.getDonationsByDonor(uid));
     }
 
     @GetMapping("/hospital/{uid}")
-    public ResponseEntity<java.util.List<Donation>> getHospitalHistory(@PathVariable String uid) {
+    public ResponseEntity<java.util.List<Donation>> getHospitalHistory(@PathVariable("uid") String uid) {
         return ResponseEntity.ok(donationService.getDonationsByHospital(uid));
     }
 }
