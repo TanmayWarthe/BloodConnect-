@@ -1,5 +1,6 @@
 package com.bloodconnect.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
@@ -12,6 +13,9 @@ import java.util.List;
 @Configuration
 public class CorsConfig {
 
+    @Value("${allowed.origins:http://localhost:5173,http://localhost:3000}")
+    private String allowedOrigins;
+
     @Bean
     public CorsFilter corsFilter() {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -20,14 +24,9 @@ public class CorsConfig {
         // Allow credentials (cookies, auth headers)
         config.setAllowCredentials(true);
 
-        // Use allowedOriginPatterns (required when allowCredentials=true)
-        // Supports Vite dev server and deployed frontend origins
-        config.setAllowedOriginPatterns(Arrays.asList(
-            "http://localhost:5173",
-            "http://localhost:3000",
-            "https://*.vercel.app",
-            "https://*.netlify.app"
-        ));
+        // Read allowed origins from environment variable — supports comma-separated list
+        // e.g. ALLOWED_ORIGINS=https://bloodconnect.vercel.app,http://localhost:5173
+        config.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
 
         // Allow all standard headers
         config.setAllowedHeaders(List.of("*"));
@@ -47,3 +46,4 @@ public class CorsConfig {
         return new CorsFilter(source);
     }
 }
+
