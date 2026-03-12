@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { apiService } from '../services/api.service'
+import { useToast } from '../components/Toast'
 import Layout from '../components/Layout'
 import {
   FiClock, FiActivity, FiFilter, FiSearch, FiChevronRight,
@@ -66,6 +67,7 @@ const formatDate = (ds) => {
 
 export default function RequestHistory() {
   const { currentUser } = useAuth()
+  const toast = useToast()
   const [requests, setRequests]       = useState([])
   const [loading, setLoading]         = useState(true)
   const [refreshing, setRefreshing]   = useState(false)
@@ -81,7 +83,7 @@ export default function RequestHistory() {
     try {
       const res = await apiService.get(`/requests/my/${currentUser.uid}`)
       setRequests(res.data || [])
-    } catch (err) { console.error(err); setRequests([]) }
+    } catch (err) { console.error(err); setRequests([]); toast.error('Load Failed', 'Could not load request history') }
     finally { setLoading(false); setRefreshing(false) }
   }
 

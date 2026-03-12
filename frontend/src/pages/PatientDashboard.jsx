@@ -8,6 +8,7 @@ import {
 } from 'react-icons/fi'
 import { useAuth } from '../contexts/AuthContext'
 import { apiService } from '../services/api.service'
+import { useToast } from '../components/Toast'
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
 const URGENCY_LEVELS = ['NORMAL', 'URGENT', 'EMERGENCY']
@@ -44,6 +45,7 @@ const StatusBadge = ({ status }) => {
 
 export default function PatientDashboard() {
   const { currentUser } = useAuth()
+  const toast = useToast()
   const [requests, setRequests]     = useState([])
   const [loading, setLoading]       = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -74,9 +76,10 @@ export default function PatientDashboard() {
     try {
       await apiService.post(`/requests?uid=${currentUser.uid}`, form)
       setShowForm(false)
+      toast.success('Request Submitted', `Blood request for ${form.bloodGroup} submitted successfully`)
       setForm({ bloodGroup: '', unitsRequired: 1, urgency: 'NORMAL', hospitalName: '', notes: '', patientName: currentUser?.name || '' })
       fetchRequests()
-    } catch (err) { setFormError(err.displayMessage || 'Failed to submit request') }
+    } catch (err) { const msg = err.response?.data?.message || err.displayMessage || 'Failed to submit request'; setFormError(msg); toast.error('Request Failed', msg) }
     finally { setSubmitting(false) }
   }
 

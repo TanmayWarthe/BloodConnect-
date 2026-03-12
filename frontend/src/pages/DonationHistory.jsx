@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../components/Toast'
 import Layout from '../components/Layout'
 import {
   FiClock, FiMapPin, FiCheckCircle, FiDroplet, FiCalendar,
@@ -51,6 +52,7 @@ const formatDate = (ds) => {
 
 export default function DonationHistory() {
   const { currentUser } = useAuth()
+  const toast = useToast()
   const [history, setHistory]         = useState([])
   const [loading, setLoading]         = useState(true)
   const [refreshing, setRefreshing]   = useState(false)
@@ -67,7 +69,7 @@ export default function DonationHistory() {
     try {
       const res = await apiService.get(`/donations/donor/${currentUser.uid}`)
       setHistory(res.data || [])
-    } catch (err) { console.error(err) }
+    } catch (err) { console.error(err); toast.error('Load Failed', 'Could not load donation history') }
     finally { setLoading(false); setRefreshing(false) }
   }
 
@@ -134,7 +136,7 @@ export default function DonationHistory() {
                 className="p-2.5 rounded-xl border border-gray-200 bg-white hover:border-red-300 hover:bg-red-50 transition-all disabled:opacity-50">
                 <FiRefreshCw size={15} className={`text-gray-500 ${refreshing ? 'animate-spin' : ''}`} />
               </button>
-              <button className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 bg-white hover:border-red-300 text-gray-600 hover:text-red-500 text-sm font-bold rounded-xl transition-all">
+              <button onClick={() => toast.info('Coming Soon', 'Export feature will be available soon')} className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 bg-white hover:border-red-300 text-gray-600 hover:text-red-500 text-sm font-bold rounded-xl transition-all">
                 <FiDownload size={14} /> Export
               </button>
             </div>

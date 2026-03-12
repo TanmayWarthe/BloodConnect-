@@ -8,6 +8,7 @@ import {
 } from 'react-icons/fi'
 import { useAuth } from '../contexts/AuthContext'
 import { apiService } from '../services/api.service'
+import { useToast } from '../components/Toast'
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
 
@@ -36,6 +37,7 @@ const InputField = ({ type = 'text', value, onChange, placeholder }) => (
 
 export default function Profile() {
   const { currentUser, updateCurrentUser } = useAuth()
+  const toast = useToast()
   const [isEditing, setIsEditing]   = useState(false)
   const [loading, setLoading]       = useState(false)
   const [saving, setSaving]         = useState(false)
@@ -142,8 +144,9 @@ export default function Profile() {
       setIsEditing(false)
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 3000)
+      toast.success('Profile Saved', 'Your profile has been updated successfully')
     } catch (err) {
-      setSaveError(err.displayMessage || err.response?.data?.message || 'Failed to save. Please try again.')
+      const msg = err.response?.data?.message || err.displayMessage || 'Failed to save. Please try again.'; setSaveError(msg); toast.error('Save Failed', msg)
     } finally { setSaving(false) }
   }
 

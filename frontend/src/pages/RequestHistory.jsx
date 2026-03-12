@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { apiService } from '../services/api.service'
+import { useToast } from '../components/Toast'
 import Layout from '../components/Layout'
 import {
   FiClock, FiActivity, FiFilter, FiSearch, FiChevronRight,
@@ -66,6 +67,7 @@ const formatDate = (ds) => {
 
 export default function RequestHistory() {
   const { currentUser } = useAuth()
+  const toast = useToast()
   const [requests, setRequests]       = useState([])
   const [loading, setLoading]         = useState(true)
   const [refreshing, setRefreshing]   = useState(false)
@@ -81,7 +83,7 @@ export default function RequestHistory() {
     try {
       const res = await apiService.get(`/requests/my/${currentUser.uid}`)
       setRequests(res.data || [])
-    } catch (err) { console.error(err); setRequests([]) }
+    } catch (err) { console.error(err); setRequests([]); toast.error('Load Failed', 'Could not load request history') }
     finally { setLoading(false); setRefreshing(false) }
   }
 
@@ -137,7 +139,7 @@ export default function RequestHistory() {
                 className="p-2.5 rounded-xl border border-gray-200 bg-white hover:border-red-300 hover:bg-red-50 transition-all disabled:opacity-50">
                 <FiRefreshCw size={15} className={`text-gray-500 ${refreshing ? 'animate-spin' : ''}`} />
               </button>
-              <button className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 bg-white text-gray-600 text-sm font-bold rounded-xl hover:border-red-300 transition-all">
+              <button onClick={() => toast.info('Coming Soon', 'Export feature will be available soon')} className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 bg-white text-gray-600 text-sm font-bold rounded-xl hover:border-red-300 transition-all">
                 <FiDownload size={14} /> Export
               </button>
             </div>
@@ -263,7 +265,7 @@ export default function RequestHistory() {
                                   <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Actions</p>
                                   <div className="space-y-2">
                                     {req.status === 'PENDING' && (
-                                      <button onClick={e => e.stopPropagation()}
+                                      <button onClick={e => { e.stopPropagation(); toast.info('Coming Soon', 'Cancel request feature coming soon') }}
                                         className="w-full py-2 bg-red-50 text-red-500 hover:bg-red-100 text-xs font-bold rounded-lg transition-colors">
                                         Cancel Request
                                       </button>

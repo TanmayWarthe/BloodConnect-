@@ -8,6 +8,7 @@ import {
 } from 'react-icons/fi'
 import { useAuth } from '../contexts/AuthContext'
 import { apiService } from '../services/api.service'
+import { useToast } from '../components/Toast'
 
 // ── Reusable Stat Card ───────────────────────────────────────────
 const StatCard = ({ icon, label, value, sub, iconBg, iconColor }) => (
@@ -37,6 +38,7 @@ const SectionHeader = ({ title, subtitle, action }) => (
 
 export default function DonorDashboard() {
   const { currentUser } = useAuth()
+  const toast = useToast()
   const [donorProfile, setDonorProfile]   = useState(null)
   const [availability, setAvailability]   = useState('available')
   const [requests, setRequests]           = useState([])
@@ -111,9 +113,9 @@ export default function DonorDashboard() {
   }
 
   const handleAcceptRequest = async (id) => {
-    if (stats.eligibilityDays > 0) { alert(`You can donate in ${stats.eligibilityDays} days.`); return }
+    if (stats.eligibilityDays > 0) { toast.warning('Not Eligible Yet', `You can donate in ${stats.eligibilityDays} days.`); return }
     try { await apiService.post(`/donations/donor/${currentUser.uid}/accept/${id}`); fetchDashboardData() }
-    catch (err) { alert(err.displayMessage || 'Failed to accept request.') }
+    catch (err) { toast.error('Action Failed', err.displayMessage || err.response?.data?.message || 'Failed to accept request.') }
   }
 
   const filteredRequests = useMemo(() => {

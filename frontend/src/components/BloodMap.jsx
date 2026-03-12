@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { apiService } from '../services/api.service'
+import { useToast } from './Toast'
 import {
   FiDroplet, FiFilter, FiRefreshCw, FiMapPin, FiUser,
   FiPhone, FiX, FiAlertCircle, FiNavigation, FiHeart,
@@ -81,6 +82,7 @@ const DonorCard = ({ donor, userLocation, onLocate }) => {
 // ── Main BloodMap ────────────────────────────────────────────────
 const BloodMap = () => {
   const { currentUser } = useAuth()
+  const toast = useToast()
   const mapRef      = useRef(null)
   const leafletRef  = useRef(null)
   const markersRef  = useRef([])
@@ -145,7 +147,7 @@ const BloodMap = () => {
     try {
       const res  = await apiService.get('/donors')
       setDonors(res.data || [])
-    } catch (err) { console.error(err) }
+    } catch (err) { console.error(err); toast.error('Map Error', 'Could not load donor locations') }
     finally { setLoading(false); setRefreshing(false) }
   }, [])
 
@@ -162,6 +164,7 @@ const BloodMap = () => {
       (pos) => {
         const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude }
         setUserLocation(loc)
+        toast.success('Location Found', 'Showing donors near your location')
         setLocationLoading(false)
 
         if (!leafletRef.current) return
@@ -196,6 +199,7 @@ const BloodMap = () => {
       },
       (err) => {
         setLocationLoading(false)
+        toast.error('Location Error', 'Could not get your location. Please allow location access.')
         setLocationError('Could not get your location. Please allow location access.')
       },
       { enableHighAccuracy: true, timeout: 10000 }

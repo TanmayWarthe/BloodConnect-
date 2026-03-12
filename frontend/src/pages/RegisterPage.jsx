@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../components/Toast'
 import {
   FiUser, FiMail, FiLock, FiPhone, FiMapPin,
   FiAlertCircle, FiEye, FiEyeOff
@@ -34,6 +35,7 @@ const RegisterPage = () => {
   const [loading, setLoading] = useState(false)
 
   const { register } = useAuth()
+  const toast = useToast()
   const navigate = useNavigate()
 
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }))
@@ -138,6 +140,7 @@ const RegisterPage = () => {
         }
       }
 
+      toast.success('Account Created!', 'Welcome to BloodConnect 🩸')
       navigate(`/${role}/dashboard`, { replace: true })
     } catch (err) {
       setError(err.message || 'Registration failed. Please try again.')

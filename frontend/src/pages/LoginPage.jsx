@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../components/Toast'
 import { FiMail, FiLock, FiEye, FiEyeOff, FiAlertCircle } from 'react-icons/fi'
 
 const LoginPage = () => {
@@ -11,6 +12,7 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false)
 
   const { login } = useAuth()
+  const toast = useToast()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -35,6 +37,7 @@ const LoginPage = () => {
       setError('')
       setLoading(true)
       const data = await login(email.trim(), password)
+      toast.success('Welcome Back!', `Logged in as ${data.name || email}`)
       navigate(from || getDashboard(data.role), { replace: true })
     } catch (err) {
       setError(err.message || 'Invalid email or password')
